@@ -1,203 +1,511 @@
 # Repository AI Instruction Generation Protocol User Guide v9
 
-This guide explains how to use `repo_ai_instruction_generation_protocol_v9.md`.
+This guide explains **how to use** `repo_ai_instruction_generation_protocol_v9.md` in practice.
 
-v9 builds on v8's protocol-driven, responsibility-based approach and adds structured quality assurance, multi-agent coordination, and scaffolding evolution — informed by Anthropic's harness design research on long-running application development. These additions remain opt-in and should stay off unless repository evidence or explicit user intent justifies them.
+It is written for people who want an agent to inspect a repository, infer as much as possible from evidence, ask only a small number of high-impact questions, and then generate a repository-specific AI instruction file plus any supporting memory files that are actually useful.
+
+This is a **task-oriented guide**. It focuses on:
+- when to use the protocol
+- how to run it
+- what the agent should do
+- how to decide which optional layers to enable
+- how to avoid adding unnecessary process
+
+A summary of what changed in v9 is included near the end for readers upgrading from v8.
 
 ---
 
-## 1. What changed in v9
+## 1. What this protocol is for
 
-v9 retains all of v8's core philosophy (inspect first, infer first, reuse first, responsibilities over paths) and adds:
+Use this protocol when you want to create or refresh repository-specific AI instructions such as:
+- `AGENTS.md`
+- `CLAUDE.md`
+- `GEMINI.md`
+- `COPILOT_INSTRUCTIONS.md`
+- `.github/copilot-instructions.md`
 
-### 1.1 Three new core principles
+The protocol is **filename-agnostic** and **layout-agnostic**. It does not assume a fixed repository structure. Instead, it tells the agent to inspect the repository first, infer what it can from evidence, and map responsibilities onto the repository's existing structure when possible.
 
-| Principle | Source insight | What it means |
-|---|---|---|
-| **Independent validation over self-assessment** | Generator-Evaluator separation (GAN-inspired) | An agent reviewing its own output is biased. Separate generation from evaluation when quality matters. |
-| **Acceptance criteria are steering** | Evaluation rubric language shapes output | The words you use to define "done" and "good" directly influence what gets generated. Define criteria before work begins. |
-| **Scaffolding evolves with capabilities** | Harness complexity should decrease as models improve | Not every process layer stays necessary. Periodically prune scaffolding that no longer prevents real problems. |
+In other words:
+- it is **not** a static template to paste blindly into every repository
+- it **is** a procedure for generating repository-specific instructions grounded in the repository's actual structure and workflows
 
-### 1.2 Enhanced Planning Layer (Completion Contract)
+---
 
-The Planning Layer now includes a **completion contract** — the idea that generator and evaluator should agree on the definition of "done" before work begins. This prevents the common failure mode where work is technically "complete" but doesn't meet expectations because criteria were implicit. The contract should define `WHAT` must be delivered, the validation method, and the scope boundary, while avoiding unnecessary prescriptions about `HOW` implementation is done unless repository constraints require it.
+## 2. What the protocol should produce
 
-### 1.3 New: Validation & Quality Assurance Layer (4.13)
+When used correctly, the protocol should produce:
 
-A new responsibility layer for projects where output quality is subjective, multi-dimensional, or historically unreliable. Includes:
-- project-specific quality dimensions
-- scoring criteria and thresholds
-- validation methods (prefer real interaction over code-only review)
-- guidance on calibrating evaluator expectations
+1. the repository's main AI instruction file under the most appropriate filename
+2. any supporting memory files that are clearly justified for that repository
+3. a short list of unresolved assumptions or questions only when they materially affect the result
+4. cleanup of the copied protocol file and copied user guide after finalization, unless the user explicitly wants them kept
 
-### 1.4 New: Multi-Agent Coordination Layer (4.14)
+The protocol is meant to create real outputs, not just describe what someone else should create later.
 
-A new responsibility layer for projects involving multiple agents. Covers:
-- agent role definitions and boundaries
-- file-based communication protocol
+---
+
+## 3. When to use this protocol
+
+Use it when:
+- you are setting up AI instructions for a repository for the first time
+- an existing instruction file has drifted away from repository reality
+- the repository has grown and now needs clearer rules, structure, or memory files
+- the repository has multiple AI instruction files and you need to decide which one is canonical or how they should stay in sync
+- you want the agent to infer structure from the repository instead of hand-writing instructions from scratch
+
+You usually do **not** need this protocol when:
+- you are making a tiny one-line edit to an already-good instruction file
+- the repository is so small that a very short manual instruction file is easier than running the full generation process
+- the repository already has accurate, maintained, repository-specific AI instructions and no meaningful workflow changes have occurred
+
+---
+
+## 4. Quick start
+
+For most repositories, the practical workflow is:
+
+1. Place `repo_ai_instruction_generation_protocol_v9.md` in the repository or otherwise make it available to the agent.
+2. Ask the agent to inspect the repository and generate the repository's final AI instruction file.
+3. Let the agent inspect the repository before answering questions.
+4. Let the agent draft a repository-specific instruction file and propose any supporting files.
+5. Answer only the small number of high-impact questions that the agent could not infer from repository evidence.
+6. Let the agent finalize the output and clean up the copied protocol files unless you want to keep them.
+
+A good outcome is one where the agent:
+- reuses existing repository conventions
+- avoids inventing extra process unless the repository needs it
+- creates only the files that are actually useful
+- keeps stable rules in the main instruction file and volatile state elsewhere only when justified
+
+---
+
+## 5. What the agent should do
+
+The protocol expects the agent to work in this order.
+
+### 5.1 Inspect first
+
+Before asking questions, the agent should inspect the repository for evidence such as:
+- `README*`
+- top-level directories
+- manifests like `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `pom.xml`, `build.gradle*`
+- `Makefile`, `justfile`, `Taskfile.yml`, scripts, and helper commands
+- CI files such as `.github/workflows/`
+- docs, notes, reports, plans, experiments, and runbooks
+- existing AI instruction files
+- evidence of remote execution, long-running jobs, schedulers, artifact directories, evaluation pipelines, or multi-agent workflows
+
+The agent should prefer facts visible in the repository over user interrogation.
+
+### 5.2 Infer what can be inferred
+
+From repository evidence, the agent should infer as much as possible, including when visible:
+- project name
+- important paths
+- setup, build, test, lint, run, and validation commands
+- repository shape (simple repo, monorepo, research repo, infra repo, mixed repo, etc.)
+- whether long-running or remote execution exists
+- whether the repository already has a working memory/document system
+- whether multiple instruction files or sync rules already exist
+- whether validation workflows or multi-agent coordination are already real parts of the project
+
+### 5.3 Draft before asking questions
+
+Before asking the user anything, the agent should draft:
+- the likely final instruction file structure
+- a proposed mapping from responsibility layers to repository paths
+- any obviously necessary supporting files
+- a short list of unresolved, high-impact ambiguities
+
+This is important because it prevents the agent from asking broad, low-value questions too early.
+
+### 5.4 Ask only a small number of high-impact questions
+
+The protocol is intentionally strict here. The agent should ask only about issues that materially affect structure, safety, or workflow.
+
+Good examples:
+- which instruction filename should be canonical when several are plausible
+- whether multiple instruction files should stay synchronized
+- whether remote servers, shared GPUs, or schedulers exist outside what the repository reveals
+- whether generated supporting files should be committed
+- whether hidden approval, security, or safety rules exist
+- whether multi-agent coordination or independent validation is desired when not clearly visible in the repository
+
+Bad examples:
+- asking which package manager is used when a manifest makes it obvious
+- asking what the source directory is when the repository makes it obvious
+- asking for build/test commands that already exist in scripts or CI
+
+### 5.5 Finalize and clean up
+
+After the user answers the few remaining questions, the agent should:
+- finalize the instruction file
+- create the justified supporting files
+- remove temporary assumption markers where possible
+- delete the copied protocol file and copied user guide unless the user explicitly wants to keep them
+
+---
+
+## 6. How to decide which instruction filename to use
+
+The protocol does not require a single filename. The correct choice depends on repository reality.
+
+### Prefer an existing convention when one already works
+
+If the repository already uses one of these files as its real AI instruction file, keep using it unless there is a strong reason to change:
+- `AGENTS.md`
+- `CLAUDE.md`
+- `GEMINI.md`
+- `COPILOT_INSTRUCTIONS.md`
+- `.github/copilot-instructions.md`
+
+### Use `AGENTS.md` only as a default fallback
+
+If no stronger signal exists, the protocol defaults to `AGENTS.md`.
+
+### If multiple instruction files already exist
+
+Do not overwrite blindly. First determine:
+- which file is canonical
+- whether the others are mirrors
+- whether model-specific differences are intentional
+- whether a synchronization rule should be documented
+
+If more than one instruction file is part of the real workflow, the repository may need a **multi-instruction synchronization rule**.
+
+---
+
+## 7. How to choose supporting files
+
+The protocol works by responsibility layers, not fixed paths. The agent should create supporting files only when they provide clear value.
+
+### Usually useful in larger or longer-running work
+
+These layers are often worth enabling when work spans multiple sessions, tasks, or contributors:
+- **Current Status** — a compact dashboard of active work, blockers, and next steps
+- **Planning** — plans for medium or large tasks
+- **Active Task Memory** — durable working memory for long tasks
+- **Archive** — a place to move completed task history so active files stay short
+- **Decision Records** — durable records of major tradeoffs
+- **Reports / Deep Analysis** — investigations, evaluations, and writeups
+- **Runbooks** — repeatable operational procedures
+- **Handoffs** — cross-session or cross-agent continuity
+
+### Usually unnecessary in very small repositories
+
+Avoid creating a forest of tracking, planning, status, archive, and coordination files when:
+- the repository is tiny
+- the work is trivial
+- the team does not actually use those files
+- the maintenance cost would exceed the benefit
+
+The protocol explicitly prefers **minimum effective structure**.
+
+---
+
+## 8. Planning with a completion contract
+
+For medium or large tasks, the Planning Layer should define a **completion contract** before execution begins.
+
+A good completion contract includes:
+- **observable acceptance criteria**
+- **validation method**
+- **scope boundary**
+- a clear statement of **what** must be delivered without over-prescribing **how** unless the repository requires a fixed approach
+
+### Why this matters
+
+Without a completion contract, the person or agent doing the work and the person or agent reviewing the work may be working against different definitions of done. That gap is a common cause of rework.
+
+### Example
+
+Weak criterion:
+- make the docs better
+
+Better criterion:
+- installation steps are complete for a fresh clone
+- every command in the quick start was verified against the repository
+- the troubleshooting section covers the two known setup failures
+- all internal links resolve
+
+---
+
+## 9. Optional layers: when to enable them
+
+The most common mistake is enabling every optional layer just because the protocol supports it. Do not do that.
+
+### 9.1 Validation & Quality Assurance
+
+This layer is **off by default**. Enable it when output quality is subjective, multi-dimensional, or historically unreliable.
+
+Good fit:
+- UI, UX, design, writing, or other work where “done” is not just binary correctness
+- projects where output often looks done but fails in real use
+- workflows where iteration keeps happening because the acceptance criteria are vague
+- cases where real validation is feasible, such as running the app, walking through the flow, or performing structured checks
+
+Usually skip it when:
+- correctness is binary and existing tests already cover it well
+- the repository is small and informal
+- lighter validation already catches the relevant failure modes
+
+### 9.2 Multi-Agent Coordination
+
+This layer is **off by default**. Enable it only when multiple agents actually coordinate on the same codebase or workflow.
+
+Good fit:
+- planner / implementer / evaluator workflows
+- orchestration harnesses
+- real handoffs between agents
+- clearly separated scopes of responsibility
+
+Usually skip it when:
+- only one agent is doing the work
+- a human is already providing all necessary coordination
+- the repository is too small to justify extra coordination files
+
+### 9.3 Remote Execution
+
+Enable it only if the project truly uses:
+- remote machines
+- shared servers
+- GPUs
+- schedulers
+- remote artifact locations
+
+If remote execution is not real, do not add remote execution ceremony.
+
+### 9.4 Multi-Instruction Synchronization
+
+Enable it only if the repository genuinely relies on more than one AI instruction file.
+
+---
+
+## 10. How to keep the main instruction file useful
+
+The main AI instruction file should contain **stable repository guidance**, such as:
+- repository purpose and scope
+- important paths
+- working directory rules
+- setup, build, test, lint, and run commands when visible
+- validation expectations when relevant
+- editing and change rules
+- documentation and memory mapping
+- sync, remote execution, or coordination rules only if those workflows are real
+- a maintenance note explaining that the file is a living document
+
+It should **not** become a giant dumping ground for:
+- temporary task status
+- long investigations
+- experiment logs
+- repeated handoff notes
+- stale planning details
+
+When information is volatile, detailed, or task-specific, move it into supporting files only if the repository actually benefits from them.
+
+---
+
+## 11. Common patterns
+
+### Pattern A: Small single-repository app
+
+Usually enough:
+- one main AI instruction file
+- maybe a compact status or plan file if work spans sessions
+
+Usually not needed:
+- coordination files
+- quality rubrics
+- run registries
+- heavy handoff machinery
+
+### Pattern B: Active product repository with ongoing tasks
+
+Often useful:
+- main instruction file
+- compact tracking/status file
+- per-task plans for medium or large work
+- decision records for major tradeoffs
+- archive area to prevent active files from growing indefinitely
+
+### Pattern C: Research, training, or evaluation repository
+
+Often useful:
+- main instruction file
+- experiment/run tracking
+- reports or analysis documents
+- remote execution notes if jobs run elsewhere
+- stronger validation rules if results are subtle or high cost to misinterpret
+
+### Pattern D: Multi-agent repository or harness-based workflow
+
+Often useful:
+- main instruction file
+- clear role definitions
+- contract files or checklists used across agents
+- feedback files that carry actionable iteration deltas
 - handoff rules and iteration limits
-- coordination file conventions
 
-### 1.5 New: Scaffolding Evolution section (Section 11)
-
-Dedicated guidance on when and how to simplify or remove scaffolding layers, including:
-- periodic re-evaluation triggers
-- simplification signals
-- evolution records to prevent cargo-culting removed layers back in
-
-### 1.6 New starter snippets
-
-Three new optional templates:
-- **Plan with Completion Contract** (replaces the v8 plan starter)
-- **Quality Evaluation** — structured scoring rubric
-- **Multi-Agent Coordination** — agent roles, communication protocol, handoff rules
+But even here, use only the minimum coordination that actually improves outcomes.
 
 ---
 
-## 2. When to use the new layers
+## 12. Common mistakes to avoid
 
-### Validation & Quality Assurance Layer
+### Mistake 1: Treating the protocol as a fixed template
 
-Default stance: leave this layer disabled unless repository evidence or explicit user intent justifies it.
+The protocol defines responsibilities, not a mandatory directory tree. Reuse the repository's existing structure when possible.
 
-Enable when:
-- output quality is subjective (UI, UX, design, writing)
-- "looks done but doesn't work" has been a recurring problem
-- multiple revision cycles happen because criteria were unclear
-- you can feasibly validate output by running it (not just reading code)
-- the cost of shipping a bad result is high
+### Mistake 2: Asking too many questions before inspecting
 
-Skip when:
-- the task is simple and correctness is binary (it compiles or it doesn't)
-- the project is small and informal
-- existing tests already provide sufficient quality gates
-- lighter validation already catches the relevant failures
+The agent should inspect first and infer first. Questions are for unresolved, high-impact ambiguity only.
 
-### Multi-Agent Coordination Layer
+### Mistake 3: Creating every optional file by default
 
-Default stance: leave this layer disabled unless repository evidence or explicit user intent shows that multiple agents are actually part of the workflow.
+More files do not automatically mean better instructions. Extra scaffolding should be justified by real workflow needs.
 
-Enable when:
-- multiple agents work on the same codebase (e.g., planner + implementer + evaluator)
-- there is a clear division of labor across agents
-- agent-to-agent handoffs are part of the workflow
-- you are using or building an orchestration harness
+### Mistake 4: Putting volatile state in the main instruction file
 
-Skip when:
-- only one agent interacts with the repository
-- coordination is handled entirely by a human operator
-- the project is small enough that a single agent handles everything
-- role boundaries or handoff points are not real enough to justify extra coordination files
+The main instruction file should stay stable and durable. Temporary state belongs elsewhere, and only when necessary.
+
+### Mistake 5: Keeping obsolete scaffolding forever
+
+If a layer no longer prevents real failure modes, simplify or remove it.
 
 ---
 
-## 3. The completion contract in practice
+## 13. Scaffolding should evolve
 
-The completion contract is the most immediately useful addition from v9. Here is how to use it:
+The protocol assumes that process should adapt over time.
 
-**Before starting any medium or large task:**
-1. Write observable acceptance criteria (not "make it look good" but "navigation works on mobile viewports, all links resolve, loading time < 2s")
-2. Specify the validation method (run tests? check in browser? manual walkthrough?)
-3. Define what is explicitly out of scope
-4. State `WHAT` must be delivered; avoid over-prescribing `HOW` unless repository constraints require it
-5. Share these criteria with both the person/agent doing the work and the person/agent reviewing it
+Re-evaluate scaffolding when:
+- the repository changes significantly
+- the team or workflow changes
+- a much better model is adopted
+- a file or process layer is being maintained but rarely consulted
+- the maintenance cost exceeds the value it provides
 
-**Why this matters:**
-Without a completion contract, the generator optimizes for what it *thinks* done means, and the evaluator judges against *their* implicit standard. The gap between these two interpretations is where most rework originates.
+Good signs that simplification is appropriate:
+- a handoff file is never read
+- a tracking file is always stale
+- a validation layer never changes decisions
+- coordination rules exist on paper but not in actual workflow
 
----
-
-## 4. Quality dimensions are project-specific
-
-v9 does not prescribe universal quality dimensions. The Anthropic harness research used four dimensions (design quality, originality, craft, functionality) because they were building web apps. Your project will have different dimensions.
-
-Examples:
-- **Backend API**: correctness, performance, error handling, API ergonomics
-- **Data pipeline**: accuracy, completeness, latency, fault tolerance
-- **ML model**: accuracy, inference speed, reproducibility, fairness
-- **Documentation**: clarity, completeness, accuracy, findability
-- **CLI tool**: correctness, UX, error messages, performance
-
-The key insight is: **write your quality dimensions down before work starts**, because the language of the criteria steers the output.
+The goal is not maximum structure. The goal is the **minimum structure that reliably prevents quality loss or context loss**.
 
 ---
 
-## 5. Scaffolding evolution in practice
+## 14. Practical prompts you can give the agent
 
-v8 introduced living documents. v9 adds living scaffolding — the idea that the process itself should evolve.
+### First-time setup
 
-**When to re-evaluate scaffolding:**
-- when upgrading to a significantly better model
-- when the project's scale or team changes
-- when you notice a layer being maintained but never consulted
-- when a layer's maintenance cost exceeds the problems it prevents
+> Inspect this repository using `repo_ai_instruction_generation_protocol_v9.md`, infer as much as possible from repository evidence, draft the final AI instruction file and any justified supporting files, then ask me only the small number of unresolved high-impact questions.
 
-**Example evolution:**
-The Anthropic team found that context reset mechanisms (needed for older models with "context anxiety") became unnecessary when they upgraded to newer models with better context handling. They removed the layer rather than keeping it out of habit.
+### Refresh an existing instruction file
 
-Apply the same thinking to your scaffolding:
-- If your handoff layer is never read by subsequent sessions, consider removing it
-- If your detailed tracking file is always stale, simplify to a one-liner in the main instruction file
-- If your multi-agent coordination is handled well by a single agent now, drop the coordination layer
+> Refresh this repository's AI instruction file using `repo_ai_instruction_generation_protocol_v9.md`. Reuse existing repository structure where possible, identify any outdated guidance, and only suggest supporting files that are clearly justified.
 
----
+### Multiple instruction files already exist
 
-## 6. File-based agent communication
+> Inspect this repository and determine whether the existing AI instruction files have a canonical source or need synchronization rules. Do not overwrite blindly.
 
-v9 recommends file-based communication for multi-agent setups because:
-- files are simple, auditable, and human-readable
-- no message queue or shared state infrastructure is needed
-- any agent (or human) can inspect the current state at any time
-- files integrate naturally with version control
+### Existing project, but keep scaffolding light
 
-Use this only when real handoffs exist; do not add coordination files as ceremony.
-
-Practical patterns:
-- **Contract files**: one agent writes the acceptance criteria, another reads them before starting work
-- **Signal files**: a file whose presence or content indicates status (e.g., `sprint-03.ready-for-review`)
-- **Feedback files**: the evaluator writes specific, actionable feedback that the generator reads for the next iteration; when evaluation fails, record at least the failed criterion, observed behavior, evidence/validation method, and required change
+> Use `repo_ai_instruction_generation_protocol_v9.md`, but keep scaffolding minimal. Only add planning, tracking, validation, or coordination files if repository evidence clearly justifies them.
 
 ---
 
-## 7. Relationship to v8
+## 15. What changed in v9
 
-v9 is a superset of v8. Everything in v8 still applies:
-- inspect first, infer first, reuse first
+If you are already familiar with v8, these are the main additions.
+
+### 15.1 Three added principles
+
+v9 adds three core ideas:
+- **independent validation over self-assessment**
+- **acceptance criteria are steering**
+- **scaffolding evolves with capabilities**
+
+### 15.2 Planning now includes a completion contract
+
+The Planning Layer now explicitly defines “done” before execution through:
+- observable acceptance criteria
+- validation method
+- scope boundary
+- a `WHAT` / `HOW` boundary that avoids unnecessary implementation lock-in
+
+### 15.3 New optional Validation & Quality Assurance layer
+
+This adds structured quality dimensions, scoring, and validation guidance for cases where output quality is subjective or multi-dimensional.
+
+### 15.4 New optional Multi-Agent Coordination layer
+
+This adds role definitions, file-based communication patterns, handoff rules, and iteration guidance for repositories where multiple agents are genuinely coordinating.
+
+### 15.5 Scaffolding evolution is now explicit
+
+v9 now explicitly instructs agents to simplify or remove scaffolding that no longer provides value.
+
+---
+
+## 16. Relationship to v8
+
+v9 is a superset of v8, not a replacement that invalidates earlier work.
+
+What still applies from v8:
+- inspect first
+- infer first
+- reuse first
 - responsibilities over fixed paths
 - small question set
-- adapt to repository reality
+- adaptation to repository reality
 - living documents
-- template cleanup
+- cleanup of temporary bootstrap files
 
-v9 adds layers and principles; it does not remove or contradict anything from v8. Projects that don't need the new layers can ignore them — they remain opt-in and should stay off unless repository evidence or explicit user intent justifies them.
+What is new is mostly additional guidance for:
+- clearer planning
+- stronger quality evaluation when justified
+- multi-agent coordination when justified
+- ongoing simplification of unnecessary scaffolding
 
----
-
-## 8. Migration from v8
-
-No migration is needed. v9 is backward-compatible:
-- existing v8-generated instruction files remain valid
-- new layers are opt-in, not mandatory
-- the agent will only enable new layers when the project signals a need
-
-To adopt v9 on an existing project:
-1. replace the protocol file with v9
-2. let the agent re-evaluate which layers are now relevant
-3. the agent may suggest adding validation criteria or coordination rules only if the project fits
-4. no existing files need to change unless the agent identifies a clear improvement
+Projects that do not need the new layers can ignore them.
 
 ---
 
-## 9. Summary of all v9 changes
+## 17. Migrating from v8
 
-| Area | Change |
+In most cases, migration is simple:
+
+1. replace the old protocol file with v9
+2. let the agent inspect the repository again
+3. let the agent decide whether any of the new optional layers are now justified
+4. update the repository's AI instruction file only where repository evidence or workflow needs support the change
+
+No automatic restructuring is required just because v9 exists.
+
+---
+
+## 18. Final takeaway
+
+The most important way to use this protocol correctly is:
+- **inspect before asking**
+- **infer before escalating uncertainty to the user**
+- **reuse existing repository structure before introducing new files**
+- **enable only the layers that solve real problems**
+- **keep the main instruction file stable and repository-specific**
+- **treat both instructions and scaffolding as living artifacts**
+
+If the protocol is working well, the result should feel like a repository-specific operating guide grounded in evidence — not a generic template and not a pile of unnecessary process.
+
+|      |      |
 |---|---|
-| Core Principles | Added 9 (independent validation), 10 (acceptance criteria as steering), 11 (scaffolding evolution) |
-| Planning Layer (4.3) | Enhanced with completion contract and a `WHAT` / `HOW` boundary |
-| New Layer (4.13) | Validation & Quality Assurance, default-off unless justified |
-| New Layer (4.14) | Multi-Agent Coordination, default-off unless justified |
-| Adaptation Rules (5.6) | Match scaffolding to current needs |
-| Section 7 | Added quality criteria and scaffolding evolution to instruction file requirements |
-| Section 8 | Added enablement rules for validation and multi-agent layers; keep them off unless justified |
-| New Section 11 | Scaffolding Evolution — periodic re-evaluation, simplification signals, evolution records |
-| Starter Snippets | Added Plan with Completion Contract (14.2), Quality Evaluation (14.6), Multi-Agent Coordination (14.7), with actionable next-iteration feedback on failed evaluations |
+|      |      |
+|      |      |
+|      |      |
+|      |      |
+|      |      |
+|      |      |
+|      |      |
+|      |      |
+|      |      |
