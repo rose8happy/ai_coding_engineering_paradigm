@@ -1,0 +1,25 @@
+# Template Versions
+
+## Current Recommended Release
+
+- Template package release: `2026-04-02`
+- Protocol baseline: `v9`
+- The latest recommended source bundle lives at the repository root and under [.ai/templates/](.ai/templates/).
+- Historical public snapshots live under [versions/](versions/).
+
+## Version Model
+
+- Protocol filenames such as `repo_ai_instruction_generation_protocol_v9.md` keep the protocol-generation label. `v9` identifies the protocol line, not the template package release date.
+- Template package releases use `YYYY-MM-DD`.
+- Same-day follow-up releases use `YYYY-MM-DD-rN`.
+- Archive directories use `versions/<release-id>/`.
+- Git tags for published template releases should use `template-<release-id>`.
+
+## Historical Note
+
+- The existing Git tag `V9` marks the protocol milestone where the v9 reference documents were introduced.
+- `V9` is not a template package release tag and should not be reused for future template releases.
+
+## Release Index
+
+- `2026-04-02`: first formal dated template package release. The latest public files live at the repository root and under [.ai/templates/](.ai/templates/), and the matching archived snapshot lives at [versions/2026-04-02/](versions/2026-04-02/).

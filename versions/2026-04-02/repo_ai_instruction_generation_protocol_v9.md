@@ -1,8 +1,5 @@
 # Repository AI Instruction Generation Protocol v9
 
-[简体中文](./repo_ai_instruction_generation_protocol_v9.zh-CN.md)
-
-> This English document is the canonical maintenance source for this protocol pair.
 > Use this protocol to generate or refresh repository-specific AI instruction files.
 > This protocol is filename-agnostic and layout-agnostic.
 > Common output filenames include `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `COPILOT_INSTRUCTIONS.md`, and `.github/copilot-instructions.md`.

@@ -1,9 +1,5 @@
 # Repository AI Instruction Generation Protocol User Guide v9
 
-[简体中文](./repo_ai_instruction_generation_protocol_user_guide_v9.zh-CN.md)
-
-> This English document is the canonical maintenance source for this protocol pair.
-
 This guide explains **how to use** `repo_ai_instruction_generation_protocol_v9.md` in practice.
 
 It is written for people who want an agent to inspect a repository, infer as much as possible from evidence, ask only a small number of high-impact questions, and then generate a repository-specific AI instruction file plus any supporting memory files that are actually useful.
